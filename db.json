@@ -1,0 +1,19 @@
+{
+  "employees": [
+    {
+      "employeeId": "1082",
+      "name": "Megha",
+      "organization": "4i",
+      "position": "chennai",
+      "addresses": [
+        {
+          "street": "juhgytfdgr",
+          "city": "kjlhgh",
+          "state": "jkhg",
+          "zip": "600100"
+        }
+      ],
+      "id": 1
+    }
+  ]
+}
