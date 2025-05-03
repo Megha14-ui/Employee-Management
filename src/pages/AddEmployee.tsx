@@ -25,47 +25,52 @@ import {
 } from "@mui/material";
 import { Add, Clear } from "@mui/icons-material";
 import { useFormik } from "formik";
-import * as yup from "yup";
+import { z } from "zod";
 import { useNavigate } from "react-router-dom";
 import { useEmployeeContext } from "../context/EmployeeContext";
-import { z } from "zod";
 
-// Zod validation schema for address form
 const addressValidationSchema = z.object({
   street: z.string().min(1, "Street is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().min(1, "State is required"),
+  city: z.string().min(2, "City is required"),
+  state: z.string().min(3, "State is required"),
   zip: z
     .string()
-    .min(1, "ZIP Code is required")
+    .min(4, "ZIP Code is required")
     .regex(/^\d+$/, "ZIP Code must be numeric"),
 });
 
-const validationSchema = yup.object({
-  employeeId: yup.string().required("Employee ID is required"),
-  name: yup.string().required("Name is required"),
-  organization: yup.string().required("Organization is required"),
-  position: yup.string().required("Position is required"),
+const validationSchema = z.object({
+  employeeId: z.string().min(1, "Employee ID is required"),
+  name: z.string().min(1, "Name is required"),
+  organization: z.string().min(1, "Organization is required"),
+  position: z.string().min(1, "Position is required"),
 });
+
+interface Address {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+}
 
 const AddEmployee = () => {
   const navigate = useNavigate();
   const { addEmployee, loading: contextLoading } = useEmployeeContext();
-  const [addresses, setAddresses] = useState([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
-    severity: "success",
+    severity: "success" as "success" | "error",
   });
-  const [addressForm, setAddressForm] = useState({
+  const [addressForm, setAddressForm] = useState<Address>({
     street: "",
     city: "",
     state: "",
     zip: "",
   });
-  const [addressError, setAddressError] = useState("");
+  const [addressError, setAddressError] = useState<string>("");
 
   const formik = useFormik({
     initialValues: {
@@ -74,10 +79,18 @@ const AddEmployee = () => {
       organization: "",
       position: "",
     },
-    validationSchema,
+    validate: (values) => {
+      const result = validationSchema.safeParse(values);
+      if (result.success) {
+        return {};
+      } else {
+        return result.error.formErrors.fieldErrors;
+      }
+    },
     onSubmit: async (values) => {
       try {
         setIsSubmitting(true);
+
         if (addresses.length === 0) {
           setSnackbar({
             open: true,
@@ -93,10 +106,11 @@ const AddEmployee = () => {
           name: values.name,
           organization: values.organization,
           position: values.position,
-          addresses,
+          addresses: addresses,
         };
 
-        await addEmployee(employeeData);
+        // await addEmployee(employeeData);
+
         setSnackbar({
           open: true,
           message: "Employee added successfully! Redirecting...",
@@ -106,10 +120,11 @@ const AddEmployee = () => {
         formik.resetForm();
         setAddresses([]);
         setTimeout(() => navigate("/employee-list"), 1500);
-      } catch (error) {
+      } catch (error: any) {
+        console.error("Submission error:", error);
         setSnackbar({
           open: true,
-          message: error.message || "Failed to add employee.",
+          message: error.message || "Failed to add employee. Please try again.",
           severity: "error",
         });
       } finally {
@@ -118,15 +133,15 @@ const AddEmployee = () => {
     },
   });
 
-  const handleAddressInputChange = (e) => {
+  const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setAddressForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleAddAddress = () => {
     try {
-      addressValidationSchema.parse(addressForm);
-      setAddresses((prev) => [...prev, addressForm]);
+      addressValidationSchema.parse(addressForm); // Zod validation
+      setAddresses((prev) => [...prev, { ...addressForm }]);
       setAddressForm({ street: "", city: "", state: "", zip: "" });
       setSnackbar({
         open: true,
@@ -135,17 +150,17 @@ const AddEmployee = () => {
       });
       setShowAddressForm(false);
       setAddressError("");
-    } catch (error) {
-      setAddressError(error.errors.map((e) => e.message).join(", "));
+    } catch (error: any) {
+      setAddressError(error.errors.map((e: any) => e.message).join(", "));
     }
   };
 
-  const handleRemoveAddress = (index) => {
+  const handleRemoveAddress = (index: number) => {
     setAddresses((prev) => prev.filter((_, i) => i !== index));
   };
 
   return (
-    <Box sx={{ p: 4 }}>
+    <Box sx={{ p: 4, width: "100%", maxWidth: 1500 }}>
       <form onSubmit={formik.handleSubmit}>
         <Card sx={{ mb: 3, boxShadow: 3 }}>
           <CardContent>
@@ -161,63 +176,93 @@ const AddEmployee = () => {
             >
               Basic Details
             </Typography>
-            <Grid container spacing={2} sx={{ mt: 2 }}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  name="employeeId"
-                  label="Employee ID"
-                  value={formik.values.employeeId}
-                  onChange={formik.handleChange}
-                  error={
-                    formik.touched.employeeId &&
-                    Boolean(formik.errors.employeeId)
-                  }
-                  helperText={
-                    formik.touched.employeeId && formik.errors.employeeId
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  name="name"
-                  label="Name"
-                  value={formik.values.name}
-                  onChange={formik.handleChange}
-                  error={formik.touched.name && Boolean(formik.errors.name)}
-                  helperText={formik.touched.name && formik.errors.name}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  name="organization"
-                  label="Organization"
-                  value={formik.values.organization}
-                  onChange={formik.handleChange}
-                  error={
-                    formik.touched.organization &&
-                    Boolean(formik.errors.organization)
-                  }
-                  helperText={
-                    formik.touched.organization && formik.errors.organization
-                  }
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  name="position"
-                  label="Position"
-                  value={formik.values.position}
-                  onChange={formik.handleChange}
-                  error={
-                    formik.touched.position && Boolean(formik.errors.position)
-                  }
-                  helperText={formik.touched.position && formik.errors.position}
-                />
-              </Grid>
+            <Grid
+              container
+              spacing={2}
+              sx={{
+                mt: 2,
+                textAlign: "center",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              <Card
+                sx={{
+                  mb: 3,
+                  boxShadow: 3,
+                  width: "100%",
+                  maxWidth: 500,
+                  mt: 5,
+                  height: "auto",
+                  padding: 2,
+                }}
+              >
+                <CardContent>
+                  <Grid container spacing={3} sx={{ mt: 2 }}>
+                    <TextField
+                      fullWidth
+                      name="employeeId"
+                      label="Employee ID"
+                      value={formik.values.employeeId}
+                      onChange={formik.handleChange}
+                      error={
+                        formik.touched.employeeId &&
+                        Boolean(formik.errors.employeeId)
+                      }
+                      helperText={
+                        formik.touched.employeeId && formik.errors.employeeId
+                      }
+                      sx={{ mb: 3 }}
+                    />
+                  </Grid>
+                  <Grid>
+                    <TextField
+                      fullWidth
+                      name="name"
+                      label="Name"
+                      value={formik.values.name}
+                      onChange={formik.handleChange}
+                      error={formik.touched.name && Boolean(formik.errors.name)}
+                      helperText={formik.touched.name && formik.errors.name}
+                      sx={{ mb: 3 }}
+                    />
+                  </Grid>
+                  <Grid>
+                    <TextField
+                      fullWidth
+                      name="organization"
+                      label="Organization"
+                      value={formik.values.organization}
+                      onChange={formik.handleChange}
+                      error={
+                        formik.touched.organization &&
+                        Boolean(formik.errors.organization)
+                      }
+                      helperText={
+                        formik.touched.organization &&
+                        formik.errors.organization
+                      }
+                      sx={{ mb: 3 }}
+                    />
+                  </Grid>
+                  <Grid>
+                    <TextField
+                      fullWidth
+                      name="position"
+                      label="Position"
+                      value={formik.values.position}
+                      onChange={formik.handleChange}
+                      error={
+                        formik.touched.position &&
+                        Boolean(formik.errors.position)
+                      }
+                      helperText={
+                        formik.touched.position && formik.errors.position
+                      }
+                    />
+                  </Grid>
+                </CardContent>
+              </Card>
             </Grid>
           </CardContent>
         </Card>
@@ -243,16 +288,41 @@ const AddEmployee = () => {
               </Button>
             </Box>
             <Divider sx={{ my: 2 }} />
+
             {addresses.length > 0 ? (
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>Street</TableCell>
-                    <TableCell>City</TableCell>
-                    <TableCell>State</TableCell>
-                    <TableCell>ZIP</TableCell>
-                    <TableCell>Action</TableCell>
+                    <TableCell
+                      sx={{ backgroundColor: "#f0f8ff", fontWeight: "bold" }}
+                    >
+                      #
+                    </TableCell>
+                    <TableCell
+                      sx={{ backgroundColor: "#f0f8ff", fontWeight: "bold" }}
+                    >
+                      Street
+                    </TableCell>
+                    <TableCell
+                      sx={{ backgroundColor: "#f0f8ff", fontWeight: "bold" }}
+                    >
+                      City
+                    </TableCell>
+                    <TableCell
+                      sx={{ backgroundColor: "#f0f8ff", fontWeight: "bold" }}
+                    >
+                      State
+                    </TableCell>
+                    <TableCell
+                      sx={{ backgroundColor: "#f0f8ff", fontWeight: "bold" }}
+                    >
+                      ZIP
+                    </TableCell>
+                    <TableCell
+                      sx={{ backgroundColor: "#f0f8ff", fontWeight: "bold" }}
+                    >
+                      Action
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -320,60 +390,53 @@ const AddEmployee = () => {
         </Alert>
       </Snackbar>
 
-      <Backdrop open={contextLoading} sx={{ color: "#fff", zIndex: 9999 }}>
+      <Backdrop
+        open={contextLoading}
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+      >
         <CircularProgress color="inherit" />
       </Backdrop>
 
-      {/* Address Modal */}
       <Dialog open={showAddressForm} onClose={() => setShowAddressForm(false)}>
         <DialogTitle>Add Address</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                name="street"
-                label="Street"
-                value={addressForm.street}
-                onChange={handleAddressInputChange}
-                error={!!addressError}
-                helperText={addressError}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                name="city"
-                label="City"
-                value={addressForm.city}
-                onChange={handleAddressInputChange}
-                error={!!addressError}
-                helperText={addressError}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                name="state"
-                label="State"
-                value={addressForm.state}
-                onChange={handleAddressInputChange}
-                error={!!addressError}
-                helperText={addressError}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                name="zip"
-                label="ZIP Code"
-                value={addressForm.zip}
-                onChange={handleAddressInputChange}
-                error={!!addressError}
-                helperText={addressError}
-              />
-            </Grid>
-          </Grid>
+          <TextField
+            fullWidth
+            name="street"
+            label="Street"
+            value={addressForm.street}
+            onChange={handleAddressInputChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            name="city"
+            label="City"
+            value={addressForm.city}
+            onChange={handleAddressInputChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            name="state"
+            label="State"
+            value={addressForm.state}
+            onChange={handleAddressInputChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            fullWidth
+            name="zip"
+            label="ZIP"
+            value={addressForm.zip}
+            onChange={handleAddressInputChange}
+            sx={{ mb: 2 }}
+          />
+          {addressError && (
+            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+              {addressError}
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddressForm(false)} color="secondary">

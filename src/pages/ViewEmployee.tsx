@@ -162,6 +162,9 @@ const ViewEmployee = () => {
           <Button variant="contained" onClick={() => navigate("/")}>
             Back
           </Button>
+          <Button variant="contained" onClick={() => navigate(`/edit/${id}`)}>
+            Edit
+          </Button>
         </Box>
       </Paper>
     </Box>

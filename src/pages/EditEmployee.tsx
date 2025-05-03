@@ -8,6 +8,11 @@ import {
   CircularProgress,
   Alert,
   IconButton,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
 } from "@mui/material";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -110,7 +115,7 @@ const EditEmployee = () => {
         sx={{
           p: 4,
           width: "100%",
-          maxWidth: 600,
+          maxWidth: 800,
           boxShadow: 3,
           borderRadius: 3,
           backgroundColor: "#f9f9f9",
@@ -188,104 +193,131 @@ const EditEmployee = () => {
           <Typography variant="h6" mt={3} color="secondary" fontWeight="bold">
             Address Details
           </Typography>
-          {employee.addresses?.map((address, index) => (
+
+          {employee.addresses?.length > 0 ? (
             <Box
-              key={index}
               mt={2}
-              p={2}
-              border="1px solid #ddd"
-              borderRadius={2}
-              position="relative"
-              bgcolor="#fafafa"
-              boxShadow={1}
+              sx={{
+                overflowX: "auto",
+                border: "1px solid #ddd",
+                borderRadius: 2,
+                backgroundColor: "#fafafa",
+                boxShadow: 1,
+              }}
             >
-              {editingAddressIndex === index ? (
-                <>
-                  <TextField
-                    fullWidth
-                    label="Street"
-                    value={address.street}
-                    onChange={(e) =>
-                      handleAddressChange(index, "street", e.target.value)
-                    }
-                    margin="dense"
-                    sx={{
-                      marginBottom: 2,
-                      backgroundColor: "#fff",
-                      borderRadius: 2,
-                    }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="City"
-                    value={address.city}
-                    onChange={(e) =>
-                      handleAddressChange(index, "city", e.target.value)
-                    }
-                    margin="dense"
-                    sx={{
-                      marginBottom: 2,
-                      backgroundColor: "#fff",
-                      borderRadius: 2,
-                    }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="State"
-                    value={address.state}
-                    onChange={(e) =>
-                      handleAddressChange(index, "state", e.target.value)
-                    }
-                    margin="dense"
-                    sx={{
-                      marginBottom: 2,
-                      backgroundColor: "#fff",
-                      borderRadius: 2,
-                    }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="Zip"
-                    value={address.zip}
-                    onChange={(e) =>
-                      handleAddressChange(index, "zip", e.target.value)
-                    }
-                    margin="dense"
-                    sx={{
-                      marginBottom: 2,
-                      backgroundColor: "#fff",
-                      borderRadius: 2,
-                    }}
-                  />
-                  <Box mt={1}>
-                    <IconButton onClick={() => setEditingAddressIndex(null)}>
-                      <SaveIcon sx={{ color: "#4caf50" }} />
-                    </IconButton>
-                  </Box>
-                </>
-              ) : (
-                <>
-                  <Typography>
-                    <strong>Street:</strong> {address.street}
-                  </Typography>
-                  <Typography>
-                    <strong>City:</strong> {address.city}
-                  </Typography>
-                  <Typography>
-                    <strong>State:</strong> {address.state}
-                  </Typography>
-                  <Typography>
-                    <strong>Zip:</strong> {address.zip}
-                  </Typography>
-                  <Box position="absolute" top={5} right={5}>
-                    <IconButton onClick={() => setEditingAddressIndex(index)}>
-                      <EditIcon sx={{ color: "#1976d2" }} />
-                    </IconButton>
-                  </Box>
-                </>
-              )}
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "#f0f0f0" }}>
+                    <TableCell sx={{ fontWeight: "bold" }}>Street</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>City</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>State</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Zip</TableCell>
+                    <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {employee.addresses.map((address, index) => (
+                    <TableRow
+                      key={index}
+                      sx={{ borderBottom: "1px solid #eee" }}
+                    >
+                      {editingAddressIndex === index ? (
+                        <>
+                          <TableCell>
+                            <TextField
+                              fullWidth
+                              value={address.street}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  index,
+                                  "street",
+                                  e.target.value
+                                )
+                              }
+                              margin="none"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              fullWidth
+                              value={address.city}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  index,
+                                  "city",
+                                  e.target.value
+                                )
+                              }
+                              margin="none"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              fullWidth
+                              value={address.state}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  index,
+                                  "state",
+                                  e.target.value
+                                )
+                              }
+                              margin="none"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              fullWidth
+                              value={address.zip}
+                              onChange={(e) =>
+                                handleAddressChange(
+                                  index,
+                                  "zip",
+                                  e.target.value
+                                )
+                              }
+                              margin="none"
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <IconButton
+                              onClick={() => setEditingAddressIndex(null)}
+                              size="small"
+                              aria-label="save"
+                            >
+                              <SaveIcon sx={{ color: "#4caf50" }} />
+                            </IconButton>
+                          </TableCell>
+                        </>
+                      ) : (
+                        <>
+                          <TableCell>{address.street}</TableCell>
+                          <TableCell>{address.city}</TableCell>
+                          <TableCell>{address.state}</TableCell>
+                          <TableCell>{address.zip}</TableCell>
+                          <TableCell>
+                            <IconButton
+                              onClick={() => setEditingAddressIndex(index)}
+                              size="small"
+                              aria-label="edit"
+                            >
+                              <EditIcon sx={{ color: "#1976d2" }} />
+                            </IconButton>
+                          </TableCell>
+                        </>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </Box>
-          ))}
+          ) : (
+            <Typography mt={2}>No addresses available</Typography>
+          )}
 
           <Box mt={3} display="flex" justifyContent="space-between">
             <Button
