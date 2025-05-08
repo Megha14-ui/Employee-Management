@@ -1,40 +1,53 @@
-import React from "react";
+import React from 'react';
 import {
   Dialog,
-  DialogActions,
+  DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogTitle,
-  Button,
-} from "@mui/material";
+  DialogActions,
+  Button
+} from '@mui/material';
 
-type ConfirmDialogProps = {
+interface ConfirmDialogProps {
   open: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
   title: string;
-  description: string;
-};
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  confirmColor?: 'inherit' | 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
+  onConfirm: () => void;
+  onCancel: () => void;
+}
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   open,
-  onClose,
-  onConfirm,
   title,
-  description,
+  message,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  confirmColor = 'error',
+  onConfirm,
+  onCancel
 }) => {
   return (
-    <Dialog open={open} onClose={onClose}>
-      <DialogTitle>{title}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-description"
+    >
+      <DialogTitle id="confirm-dialog-title">{title}</DialogTitle>
       <DialogContent>
-        <DialogContentText>{description}</DialogContentText>
+        <DialogContentText id="confirm-dialog-description">
+          {message}
+        </DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="inherit">
-          Cancel
+        <Button onClick={onCancel} color="inherit">
+          {cancelText}
         </Button>
-        <Button onClick={onConfirm} color="error" variant="contained">
-          Delete
+        <Button onClick={onConfirm} color={confirmColor} variant="contained" autoFocus>
+          {confirmText}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,60 +1,82 @@
-import React from "react";
+import React from 'react';
 import {
-  Pagination as MuiPagination,
-  FormControl,
-  InputLabel,
+  Box,
+  Typography,
   Select,
   MenuItem,
+  Pagination as MuiPagination,
   SelectChangeEvent,
-} from "@mui/material";
+  FormControl,
+  InputLabel
+} from '@mui/material';
 
 interface PaginationProps {
-  count: number;
-  rowsPerPage: number;
   page: number;
-  onRowsPerPageChange: (event: SelectChangeEvent<number>) => void;
-  onPageChange: (event: React.ChangeEvent<unknown>, newPage: number) => void;
+  rowsPerPage: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onRowsPerPageChange: (rowsPerPage: number) => void;
+  rowsPerPageOptions?: number[];
+  disabled?: boolean;
 }
 
-const Pagination: React.FC<PaginationProps> = ({
-  count,
-  rowsPerPage,
+const CustomPagination: React.FC<PaginationProps> = ({
   page,
-  onRowsPerPageChange,
+  rowsPerPage,
+  totalItems,
   onPageChange,
+  onRowsPerPageChange,
+  rowsPerPageOptions = [5, 10, 25],
+  disabled = false
 }) => {
-  return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        marginTop: "20px",
-      }}
-    >
-      <FormControl>
-        <InputLabel>Rows per page</InputLabel>
-        <Select
-          value={rowsPerPage}
-          onChange={onRowsPerPageChange}
-          label="Rows per page"
-        >
-          {[10, 20, 30, 50, 100].map((rows) => (
-            <MenuItem key={rows} value={rows}>
-              {rows}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+  const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
+    onPageChange(value);
+  };
 
+  const handleRowsPerPageChange = (event: SelectChangeEvent<number>) => {
+    onRowsPerPageChange(Number(event.target.value));
+  };
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage));
+  const startItem = totalItems === 0 ? 0 : (page - 1) * rowsPerPage + 1;
+  const endItem = Math.min(page * rowsPerPage, totalItems);
+
+  return (
+    <Box display="flex" justifyContent="space-between" alignItems="center" mt={2}>
+      <Box display="flex" alignItems="center">
+        <FormControl variant="standard" size="small" sx={{ minWidth: 120, mr: 2 }}>
+          <InputLabel id="rows-per-page-label">Rows per page</InputLabel>
+          <Select
+            labelId="rows-per-page-label"
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}
+            disabled={disabled}
+          >
+            {rowsPerPageOptions.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Typography variant="body2" color="text.secondary">
+          {totalItems > 0 
+            ? `${startItem}-${endItem} of ${totalItems}`
+            : 'No items'}
+        </Typography>
+      </Box>
+      
       <MuiPagination
-        count={Math.ceil(count / rowsPerPage)}
-        page={page + 1}
-        onChange={onPageChange}
+        count={totalPages}
+        page={page}
+        onChange={handlePageChange}
+        color="primary"
+        disabled={disabled || totalItems === 0}
         showFirstButton
         showLastButton
       />
-    </div>
+    </Box>
   );
 };
 
-export default Pagination;
+export default CustomPagination;

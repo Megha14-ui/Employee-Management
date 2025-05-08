@@ -6,17 +6,24 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Employee } from "../context/EmployeeContext";
+import { Employee, useEmployeeContext } from "../context/EmployeeContext";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 const ViewEmployee = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { deleteEmployee } = useEmployeeContext();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchEmployee = async () => {
@@ -52,6 +59,22 @@ const ViewEmployee = () => {
   }
 
   if (!employee) return null;
+
+  const handleDeleteClick = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      if (id) {
+        await deleteEmployee(Number(id));
+        setDeleteDialogOpen(false);
+        navigate("/");
+      }
+    } catch (error) {
+      setError("Failed to delete employee.");
+    }
+  };
 
   return (
     <Box
@@ -165,8 +188,35 @@ const ViewEmployee = () => {
           <Button variant="contained" onClick={() => navigate(`/edit/${id}`)}>
             Edit
           </Button>
+          <Button 
+            variant="contained" 
+            color="error" 
+            startIcon={<DeleteIcon />}
+            onClick={handleDeleteClick}
+          >
+            Delete
+          </Button>
         </Box>
       </Paper>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete {employee?.name}? This action cannot be undone.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

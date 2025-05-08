@@ -26,9 +26,11 @@ import {
 import { Add, Clear } from "@mui/icons-material";
 import { useFormik } from "formik";
 import { z } from "zod";
+import { toFormikValidationSchema } from "zod-formik-adapter"; // You'll need to install this package
 import { useNavigate } from "react-router-dom";
 import { useEmployeeContext } from "../context/EmployeeContext";
 
+// Address validation schema
 const addressValidationSchema = z.object({
   street: z.string().min(1, "Street is required"),
   city: z.string().min(2, "City is required"),
@@ -39,6 +41,7 @@ const addressValidationSchema = z.object({
     .regex(/^\d+$/, "ZIP Code must be numeric"),
 });
 
+// Main form validation schema
 const validationSchema = z.object({
   employeeId: z.string().min(1, "Employee ID is required"),
   name: z.string().min(1, "Name is required"),
@@ -64,14 +67,29 @@ const AddEmployee = () => {
     message: "",
     severity: "success" as "success" | "error",
   });
-  const [addressForm, setAddressForm] = useState<Address>({
-    street: "",
-    city: "",
-    state: "",
-    zip: "",
-  });
-  const [addressError, setAddressError] = useState<string>("");
 
+  // Address form with its own Formik instance
+  const addressFormik = useFormik({
+    initialValues: {
+      street: "",
+      city: "",
+      state: "",
+      zip: "",
+    },
+    validationSchema: toFormikValidationSchema(addressValidationSchema),
+    onSubmit: (values, { resetForm }) => {
+      setAddresses((prev) => [...prev, { ...values }]);
+      resetForm();
+      setSnackbar({
+        open: true,
+        message: "Address added successfully",
+        severity: "success",
+      });
+      setShowAddressForm(false);
+    },
+  });
+
+  // Main form
   const formik = useFormik({
     initialValues: {
       employeeId: "",
@@ -79,14 +97,7 @@ const AddEmployee = () => {
       organization: "",
       position: "",
     },
-    validate: (values) => {
-      const result = validationSchema.safeParse(values);
-      if (result.success) {
-        return {};
-      } else {
-        return result.error.formErrors.fieldErrors;
-      }
-    },
+    validationSchema: toFormikValidationSchema(validationSchema),
     onSubmit: async (values) => {
       try {
         setIsSubmitting(true);
@@ -101,15 +112,16 @@ const AddEmployee = () => {
           return;
         }
 
-        const employeeData = {
+        await addEmployee({
           employeeId: values.employeeId,
           name: values.name,
           organization: values.organization,
           position: values.position,
-          addresses: addresses,
-        };
-
-        // await addEmployee(employeeData);
+          addresses: addresses.map((addr) => ({
+            ...addr,
+            id: 0, // Add required id property as number, will be set by backend
+          })),
+        });
 
         setSnackbar({
           open: true,
@@ -133,28 +145,6 @@ const AddEmployee = () => {
     },
   });
 
-  const handleAddressInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setAddressForm((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddAddress = () => {
-    try {
-      addressValidationSchema.parse(addressForm); // Zod validation
-      setAddresses((prev) => [...prev, { ...addressForm }]);
-      setAddressForm({ street: "", city: "", state: "", zip: "" });
-      setSnackbar({
-        open: true,
-        message: "Address added successfully",
-        severity: "success",
-      });
-      setShowAddressForm(false);
-      setAddressError("");
-    } catch (error: any) {
-      setAddressError(error.errors.map((e: any) => e.message).join(", "));
-    }
-  };
-
   const handleRemoveAddress = (index: number) => {
     setAddresses((prev) => prev.filter((_, i) => i !== index));
   };
@@ -168,7 +158,8 @@ const AddEmployee = () => {
               variant="h6"
               gutterBottom
               sx={{
-                backgroundColor: "grey",
+                backgroundColor: "#1976d2",
+                color: "white",
                 p: 1,
                 borderRadius: 1,
                 textAlign: "center",
@@ -205,6 +196,7 @@ const AddEmployee = () => {
                       label="Employee ID"
                       value={formik.values.employeeId}
                       onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
                       error={
                         formik.touched.employeeId &&
                         Boolean(formik.errors.employeeId)
@@ -222,6 +214,7 @@ const AddEmployee = () => {
                       label="Name"
                       value={formik.values.name}
                       onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
                       error={formik.touched.name && Boolean(formik.errors.name)}
                       helperText={formik.touched.name && formik.errors.name}
                       sx={{ mb: 3 }}
@@ -234,6 +227,7 @@ const AddEmployee = () => {
                       label="Organization"
                       value={formik.values.organization}
                       onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
                       error={
                         formik.touched.organization &&
                         Boolean(formik.errors.organization)
@@ -252,6 +246,7 @@ const AddEmployee = () => {
                       label="Position"
                       value={formik.values.position}
                       onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
                       error={
                         formik.touched.position &&
                         Boolean(formik.errors.position)
@@ -273,7 +268,11 @@ const AddEmployee = () => {
               display="flex"
               justifyContent="space-between"
               alignItems="center"
-              sx={{ backgroundColor: "grey", padding: "8px" }}
+              sx={{
+                backgroundColor: "#1976d2",
+                padding: "8px",
+                color: "white",
+              }}
             >
               <Typography variant="h6" sx={{ p: 1, borderRadius: 1 }}>
                 Addresses
@@ -283,6 +282,7 @@ const AddEmployee = () => {
                 onClick={() => setShowAddressForm(true)}
                 disabled={showAddressForm}
                 variant="outlined"
+                sx={{ color: "white" }}
               >
                 Add Address
               </Button>
@@ -398,51 +398,80 @@ const AddEmployee = () => {
       </Backdrop>
 
       <Dialog open={showAddressForm} onClose={() => setShowAddressForm(false)}>
-        <DialogTitle>Add Address</DialogTitle>
+        {/* <DialogTitle>Add Address</DialogTitle> */}
         <DialogContent>
-          <TextField
-            fullWidth
-            name="street"
-            label="Street"
-            value={addressForm.street}
-            onChange={handleAddressInputChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            name="city"
-            label="City"
-            value={addressForm.city}
-            onChange={handleAddressInputChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            name="state"
-            label="State"
-            value={addressForm.state}
-            onChange={handleAddressInputChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            name="zip"
-            label="ZIP"
-            value={addressForm.zip}
-            onChange={handleAddressInputChange}
-            sx={{ mb: 2 }}
-          />
-          {addressError && (
-            <Typography color="error" variant="body2" sx={{ mb: 2 }}>
-              {addressError}
-            </Typography>
-          )}
+          <form onSubmit={addressFormik.handleSubmit}>
+            <TextField
+              fullWidth
+              name="street"
+              label="Street"
+              value={addressFormik.values.street}
+              onChange={addressFormik.handleChange}
+              onBlur={addressFormik.handleBlur}
+              error={
+                addressFormik.touched.street &&
+                Boolean(addressFormik.errors.street)
+              }
+              helperText={
+                addressFormik.touched.street && addressFormik.errors.street
+              }
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              name="city"
+              label="City"
+              value={addressFormik.values.city}
+              onChange={addressFormik.handleChange}
+              onBlur={addressFormik.handleBlur}
+              error={
+                addressFormik.touched.city && Boolean(addressFormik.errors.city)
+              }
+              helperText={
+                addressFormik.touched.city && addressFormik.errors.city
+              }
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              name="state"
+              label="State"
+              value={addressFormik.values.state}
+              onChange={addressFormik.handleChange}
+              onBlur={addressFormik.handleBlur}
+              error={
+                addressFormik.touched.state &&
+                Boolean(addressFormik.errors.state)
+              }
+              helperText={
+                addressFormik.touched.state && addressFormik.errors.state
+              }
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              name="zip"
+              label="ZIP"
+              value={addressFormik.values.zip}
+              onChange={addressFormik.handleChange}
+              onBlur={addressFormik.handleBlur}
+              error={
+                addressFormik.touched.zip && Boolean(addressFormik.errors.zip)
+              }
+              helperText={addressFormik.touched.zip && addressFormik.errors.zip}
+              sx={{ mb: 2 }}
+            />
+          </form>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowAddressForm(false)} color="secondary">
             Cancel
           </Button>
-          <Button onClick={handleAddAddress} color="primary">
+          <Button
+            onClick={() => addressFormik.handleSubmit()}
+            color="primary"
+            disabled={!addressFormik.isValid || !addressFormik.dirty}
+          >
             Add Address
           </Button>
         </DialogActions>

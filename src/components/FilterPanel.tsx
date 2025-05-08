@@ -1,60 +1,62 @@
-import React, { useEffect, useState } from "react";
-import { Box, Button, Autocomplete, TextField } from "@mui/material";
-import axios from "axios";
+import React from 'react';
+import {
+  Box,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Typography,
+  Divider,
+  Paper
+} from '@mui/material';
+import { Search, Clear } from '@mui/icons-material';
 
-type Props = {
-  onFilter: (org: string) => void;
-  onClear: () => void;
-};
+interface FilterPanelProps {
+  orgFilterTerm: string;
+  onOrgFilterChange: (value: string) => void;
+}
 
-const FilterPanel: React.FC<Props> = ({ onFilter, onClear }) => {
-  const [org, setOrg] = useState("");
-  const [options, setOptions] = useState<string[]>([]);
-
-  useEffect(() => {
-    const fetchOrganizations = async () => {
-      try {
-        const response = await axios.get<any[]>(
-          "http://localhost:3000/employees"
-        );
-        const organizations: string[] = [
-          ...new Set(response.data.map((emp) => emp.organization)),
-        ];
-        setOptions(organizations);
-      } catch (error) {
-        console.error("Failed to fetch organizations", error);
-      }
-    };
-    fetchOrganizations();
-  }, []);
-
+const FilterPanel: React.FC<FilterPanelProps> = ({
+  orgFilterTerm,
+  onOrgFilterChange
+}) => {
   return (
-    <Box display="flex" gap={2} mb={2} boxShadow={2} p={2} borderRadius={2}>
-      <Autocomplete
-        freeSolo
-        disableClearable
-        options={options}
-        inputValue={org}
-        onInputChange={(event, newValue) => setOrg(newValue)}
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Filter by Organization"
-            fullWidth
-            InputProps={{
-              ...params.InputProps,
-              type: "search",
-            }}
-          />
-        )}
-      />
-      <Button variant="contained" onClick={() => onFilter(org)}>
-        Search
-      </Button>
-      <Button variant="outlined" color="secondary" onClick={onClear}>
-        Clear
-      </Button>
-    </Box>
+    <Paper sx={{ p: 2, mb: 2 }}>
+      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+        Filters
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
+      
+      <Box>
+        <Typography variant="body2" gutterBottom>
+          Organization
+        </Typography>
+        <TextField
+          fullWidth
+          placeholder="Filter by organization..."
+          value={orgFilterTerm}
+          onChange={(e) => onOrgFilterChange(e.target.value)}
+          size="small"
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search fontSize="small" />
+              </InputAdornment>
+            ),
+            endAdornment: orgFilterTerm && (
+              <InputAdornment position="end">
+                <IconButton 
+                  onClick={() => onOrgFilterChange("")}
+                  edge="end"
+                  size="small"
+                >
+                  <Clear fontSize="small" />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
+    </Paper>
   );
 };
 

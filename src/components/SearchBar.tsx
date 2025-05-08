@@ -1,52 +1,58 @@
-import React from "react";
-import { Box, TextField, IconButton } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import AddIcon from "@mui/icons-material/Add";
-import DeleteIcon from "@mui/icons-material/Delete";
+import React from 'react';
+import {
+  TextField,
+  InputAdornment,
+  IconButton,
+  Box
+} from '@mui/material';
+import { Search, Clear } from '@mui/icons-material';
 
-type Props = {
-  searchTerm: string;
-  onSearch: (term: string) => void;
-  onFilterToggle: () => void;
-  onAdd: () => void;
-  onDeleteSelected: () => void;
-};
+interface SearchBarProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  fullWidth?: boolean;
+}
 
-const SearchBar: React.FC<Props> = ({
-  searchTerm,
-  onSearch,
-  onFilterToggle,
-  onAdd,
-  onDeleteSelected,
+const SearchBar: React.FC<SearchBarProps> = ({
+  value,
+  onChange,
+  placeholder = 'Search...',
+  fullWidth = true
 }) => {
+  const handleClear = () => {
+    onChange('');
+  };
+
   return (
-    <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="space-between"
-      boxShadow={2}
-      p={2}
-      borderRadius={2}
-      mb={2}
-    >
+    <Box>
       <TextField
-        label="Search by any field"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        fullWidth={fullWidth}
         variant="outlined"
-        fullWidth
-        value={searchTerm}
-        onChange={(e) => onSearch(e.target.value)}
+        size="small"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search />
+            </InputAdornment>
+          ),
+          endAdornment: value ? (
+            <InputAdornment position="end">
+              <IconButton
+                onClick={handleClear}
+                edge="end"
+                size="small"
+                aria-label="clear search"
+              >
+                <Clear />
+              </IconButton>
+            </InputAdornment>
+          ) : null
+        }}
       />
-      <Box ml={2}>
-        <IconButton color="primary" onClick={onFilterToggle}>
-          <FilterListIcon />
-        </IconButton>
-        <IconButton color="primary" onClick={onAdd}>
-          <AddIcon />
-        </IconButton>
-        <IconButton color="error" onClick={onDeleteSelected}>
-          <DeleteIcon />
-        </IconButton>
-      </Box>
     </Box>
   );
 };

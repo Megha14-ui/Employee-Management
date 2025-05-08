@@ -1,358 +1,96 @@
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useEmployeeContext } from "../context/EmployeeContext";
 import {
   Box,
-  TextField,
-  IconButton,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Checkbox,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  CircularProgress,
-  MenuItem,
-  Select,
-  Typography,
   Alert,
-  InputAdornment,
-  Pagination,
+  Container,
+  Typography,
+  Paper,
+  Divider,
 } from "@mui/material";
-import {
-  Search,
-  FilterList,
-  Add,
-  Delete,
-  Visibility,
-  Edit,
-  Clear,
-} from "@mui/icons-material";
-
-interface Employee {
-  id: string;
-  employeeId: string;
-  name: string;
-  organization: string;
-  position: string;
-  [key: string]: any;
-}
+import EmployeeTable from "../components/EmployeeTable";
 
 const EmployeeList: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    employees,
-    loading,
-    error,
-    serverStatus,
-    deleteEmployee,
-    deleteMultipleEmployees,
-    clearError,
-    fetchEmployees,
-  } = useEmployeeContext();
+  const { serverStatus, fetchEmployees } = useEmployeeContext();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showOrgFilter, setShowOrgFilter] = useState(false);
   const [orgFilterTerm, setOrgFilterTerm] = useState("");
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
-  const [employeeNameToDelete, setEmployeeNameToDelete] = useState<
-    string | null
-  >(null);
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [showLoading, setShowLoading] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setShowLoading(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     fetchEmployees();
+
+    const intervalId = setInterval(() => {
+      fetchEmployees();
+    }, 60000);
+    return () => clearInterval(intervalId);
   }, [fetchEmployees]);
 
-  const filteredEmployees = employees.filter((emp: Employee) => {
-    const matchesSearch = Object.values(emp).some((val) =>
-      val?.toString().toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    const matchesOrg = orgFilterTerm
-      ? emp.organization.toLowerCase().includes(orgFilterTerm.toLowerCase())
-      : true;
-    return matchesSearch && matchesOrg;
-  });
-
-  const paginatedEmployees = filteredEmployees.slice(
-    (page - 1) * rowsPerPage,
-    page * rowsPerPage
-  );
-
-  const handleRowsPerPageChange = (event: ChangeEvent<{ value: unknown }>) => {
-    setRowsPerPage(Number(event.target.value));
-    setPage(1);
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
   };
 
-  const handleSelect = (id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  const handleOrgFilterChange = (value: string) => {
+    setOrgFilterTerm(value);
   };
 
-  const handleDeleteConfirm = async () => {
-    try {
-      if (employeeToDelete) {
-        await deleteEmployee(employeeToDelete);
-      } else if (selectedIds.length > 0) {
-        await deleteMultipleEmployees(selectedIds);
-        setSelectedIds([]);
-      }
-    } finally {
-      setDeleteDialogOpen(false);
-      setEmployeeToDelete(null);
-      setEmployeeNameToDelete(null);
+  const handleToggleOrgFilter = () => {
+    setShowOrgFilter(!showOrgFilter);
+    if (showOrgFilter) {
+      setOrgFilterTerm("");
     }
   };
 
-  const handleSelectAll = () => {
-    const currentPageIds = paginatedEmployees.map((emp) => emp.id);
-    const areAllSelected = currentPageIds.every((id) =>
-      selectedIds.includes(id)
-    );
-    if (areAllSelected) {
-      setSelectedIds(selectedIds.filter((id) => !currentPageIds.includes(id)));
-    } else {
-      setSelectedIds([...new Set([...selectedIds, ...currentPageIds])]);
-    }
+  const handleAddClick = () => {
+    navigate("/add");
   };
 
-  const isAllSelected =
-    paginatedEmployees.length > 0 &&
-    paginatedEmployees.every((emp) => selectedIds.includes(emp.id));
+  const handleViewClick = (id: number) => {
+    navigate(`/view/${id}`);
+  };
+
+  const handleEditClick = (id: number) => {
+    navigate(`/edit/${id}`);
+  };
 
   return (
-    <Box sx={{ p: 3 }}>
-      {serverStatus === "offline" && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          Server is offline. Data may not be up to date.
-        </Alert>
-      )}
+    <Container maxWidth="lg">
+      <Box sx={{ py: 4 }}>
+        <Paper
+          sx={{
+            p: 3,
+            mb: 3,
+            boxShadow: 2,
+            backgroundColor: "#1976d2",
+            color: "white",
+          }}
+        >
+          <Typography variant="h4" component="h1" gutterBottom>
+            <center>Employee Management System</center>
+          </Typography>
+        </Paper>
 
-      {error && (
-        <Alert severity="error" onClose={clearError} sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
-      <Paper sx={{ p: 2, mb: 2, boxShadow: 3 }}>
-        <Box display="flex" gap={2} alignItems="center">
-          <TextField
-            fullWidth
-            placeholder="Search employees..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <IconButton onClick={() => setShowOrgFilter(!showOrgFilter)}>
-            <FilterList />
-          </IconButton>
-          <IconButton color="primary" onClick={() => navigate("/add")}>
-            <Add />
-          </IconButton>
-          <IconButton
-            color="error"
-            disabled={selectedIds.length === 0 || loading}
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            {loading ? <CircularProgress size={24} /> : <Delete />}
-          </IconButton>
-        </Box>
-
-        {showOrgFilter && (
-          <Box mt={2}>
-            <TextField
-              fullWidth
-              placeholder="Filter by organization..."
-              value={orgFilterTerm}
-              onChange={(e) => setOrgFilterTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-                endAdornment: orgFilterTerm && (
-                  <InputAdornment position="end">
-                    <IconButton onClick={() => setOrgFilterTerm("")}>
-                      <Clear />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
+        {serverStatus === "offline" && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            Server is offline. Data may not be up to date.
+          </Alert>
         )}
-      </Paper>
 
-      <TableContainer component={Paper} sx={{ boxShadow: 3, mb: 2 }}>
-        <Table>
-          <TableHead sx={{ bgcolor: "grey.800" }}>
-            <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={
-                    selectedIds.length > 0 &&
-                    selectedIds.length < paginatedEmployees.length
-                  }
-                  checked={isAllSelected}
-                  onChange={handleSelectAll}
-                  disabled={loading || employees.length === 0}
-                />
-              </TableCell>
-              <TableCell sx={{ color: "white" }}>Employee ID</TableCell>
-              <TableCell sx={{ color: "white" }}>Name</TableCell>
-              <TableCell sx={{ color: "white" }}>Organization</TableCell>
-              <TableCell sx={{ color: "white" }}>Position</TableCell>
-              <TableCell sx={{ color: "white" }}>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading && showLoading ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
-            ) : paginatedEmployees.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">
-                  <Typography color="textSecondary">
-                    {employees.length === 0
-                      ? "No employees added yet"
-                      : "No matching records found"}
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedEmployees.map((emp) => (
-                <TableRow key={emp.id}>
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedIds.includes(emp.id)}
-                      onChange={() => handleSelect(emp.id)}
-                    />
-                  </TableCell>
-                  <TableCell>{emp.employeeId}</TableCell>
-                  <TableCell>{emp.name}</TableCell>
-                  <TableCell>{emp.organization}</TableCell>
-                  <TableCell>{emp.position}</TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => navigate(`/view/${emp.id}`)}>
-                      <Visibility fontSize="small" />
-                    </IconButton>
-                    <IconButton onClick={() => navigate(`/edit/${emp.id}`)}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      onClick={() => {
-                        setEmployeeToDelete(emp.id);
-                        setEmployeeNameToDelete(emp.name);
-                        setDeleteDialogOpen(true);
-                      }}
-                      disabled={loading}
-                    >
-                      <Delete fontSize="small" color="error" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Box display="flex" alignItems="center">
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            Rows per page:
-          </Typography>
-          <Select
-            value={rowsPerPage}
-            onChange={handleRowsPerPageChange}
-            size="small"
-            disabled={loading}
-          >
-            {[5, 10, 25].map((num) => (
-              <MenuItem key={num} value={num}>
-                {num}
-              </MenuItem>
-            ))}
-          </Select>
-          <Typography variant="body2" sx={{ ml: 2 }}>
-            {`${(page - 1) * rowsPerPage + 1}-${Math.min(
-              page * rowsPerPage,
-              filteredEmployees.length
-            )} of ${filteredEmployees.length}`}
-          </Typography>
-        </Box>
-        <Pagination
-          count={Math.ceil(filteredEmployees.length / rowsPerPage)}
-          page={page}
-          onChange={(_, newPage) => setPage(newPage)}
-          color="primary"
-          disabled={loading}
+        <EmployeeTable
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          showOrgFilter={showOrgFilter}
+          onToggleOrgFilter={handleToggleOrgFilter}
+          orgFilterTerm={orgFilterTerm}
+          onOrgFilterChange={handleOrgFilterChange}
+          onAddClick={handleAddClick}
+          onViewClick={handleViewClick}
+          onEditClick={handleEditClick}
         />
       </Box>
-
-      <Dialog
-        open={deleteDialogOpen}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setEmployeeToDelete(null);
-          setEmployeeNameToDelete(null);
-        }}
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          {employeeToDelete
-            ? `Are you sure you want to delete ${employeeNameToDelete}?`
-            : `Are you sure you want to delete ${selectedIds.length} employee(s)?`}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setDeleteDialogOpen(false);
-              setEmployeeToDelete(null);
-              setEmployeeNameToDelete(null);
-            }}
-            color="primary"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="secondary"
-            variant="contained"
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : "Confirm"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+    </Container>
   );
 };
 
